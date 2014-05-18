@@ -1,20 +1,140 @@
-# Reproducible Research: Peer Assessment 1
+Reproducible Research - Peer Assessment 1
+=========================================
+
+Loading and preprocessing the data
+----------------------------------
+
+* Load the data (i.e. read.csv())
+
+The code for reading the data makes use of read.csv
+
+```{r echo = TRUE}
+rawdata <- read.csv("activity.csv") 
+originaldata <- rawdata
+```
+
+* Process/transform the data (if necessary) into a format suitable for your analysis
+
+In this step, the data is cleaned of NAs in the first column and date data is converted to date format.
+
+```{r echo = TRUE}
+cleandata <- rawdata[complete.cases(rawdata),]
+cleandata$date <- as.Date(strptime(cleandata$date, format="%Y-%m-%d"))
+```
+
+What is mean total number of steps taken per day?
+-------------------------------------------------
+
+* Make a histogram of the total number of steps taken each day
+
+Aggregate function is used to get the sum of total number of steps per day. Then, hist function is used to generate the histogram.
+
+```{r echo = TRUE,fig.width=7, fig.height=6}
+y <- aggregate(cleandata$steps, by=list(date=cleandata$date), FUN=sum)
+hist(y$x,xlab="Total No of Steps",main="Histogram of Total No of Steps per Day")
+```
+
+* Calculate and report the mean and median total number of steps taken per day
+
+Again, the aggregate function is used to calculate the mean of the steps per day. Some dates are missing as they have NAs in steps column. 
+
+```{r echo=TRUE}
+meandata <- aggregate(cleandata$steps, by=list(date=cleandata$date), FUN=mean)
+meandata
+``` 
+
+Again, the aggregate function is used to calculate the mean of the steps per day. Some dates are missing as they have NAs in steps column. 
+
+```{r echo=TRUE}
+mediandata <- aggregate(cleandata$steps, by=list(date=cleandata$date), FUN=median)
+mediandata
+``` 
+
+What is the average daily activity pattern?
+-------------------------------------------
+
+* Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r echo=TRUE}
+intervalmeandata <- aggregate(cleandata$steps, by=list(interval=cleandata$interval), FUN=mean)
+head(intervalmeandata)
+plot(intervalmeandata, type="l", xaxt = "n")
+at <- seq(from = 0, to = 2355, by = 167)
+axis(side = 1, at = at, tick=TRUE)
+abline(v=835,col=3,lty=3)
+``` 
+
+* Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r echo=TRUE}
+rownumber <- which.max(intervalmeandata[,2])
+maxvaluedate <- intervalmeandata[rownumber,1]
+message("5-minute interval in which the maximum number of steps were taken is ", maxvaluedate)
+``` 
+
+This is also evident from the graph above
+
+Imputing missing values
+-----------------------
+
+* Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r echo=TRUE}
+nodefectrows <- (nrow(rawdata) - nrow(cleandata))
+message("The total number of missing values in the dataset is ", nodefectrows)
+``` 
+
+* Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+The simple strategy used here is that missing values are replaced by overall mean of correct data.
+
+* Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r echo=TRUE}
+head(rawdata)
+meanofsteps<-round(sum(cleandata[,1])/nrow(cleandata))
+rawdata[is.na(rawdata)] <- meanofsteps
+head(rawdata)
+``` 
+
+Now, rawdata has data filled in with overall mean instead of NAs as shown above.
+
+* Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r echo = TRUE,fig.width=14, fig.height=6}
+y <- aggregate(rawdata$steps, by=list(date=rawdata$date), FUN=sum)
+z <- aggregate(originaldata$steps, by=list(date=originaldata$date), FUN=sum)
+op <- par(mfrow = c(1, 2))
+hist(y$x,xlab="Total No of Steps",main="Histogram of Total No of Steps per Day of Corrected Data")
+hist(z$x,xlab="Total No of Steps",main="Histogram of Total No of Steps per Day")
+axis(2, at=seq(0,40,by=5),labels=seq(0,40,by=5) )
+meancorrecteddata <- aggregate(rawdata$steps, by=list(date=rawdata$date), FUN=mean)
+meancorrecteddata 
+mediancorrecteddata <- aggregate(rawdata$steps, by=list(date=rawdata$date), FUN=median)
+mediancorrecteddata
+```
+
+Yes, the values definitely differ from the estimates from the first assignment. From a comparison of the graphs of above, the total number of steps against the original data, we can see that the corrected data is definitely inflated. The graphs may have the nearly the same contours but, the scales are different on the y-axis that show the difference. Similarly, the mean and median values are inflated.
+
+Are there differences in activity patterns between weekdays and weekends?
+-------------------------------------------------------------------------
+
+* Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r echo=TRUE}
+cleandata["daytype"] <- ifelse((weekdays(as.Date(strptime(cleandata$date, format="%Y-%m-%d"))) == "Saturday" | weekdays(as.Date(strptime(cleandata$date, format="%Y-%m-%d"))) == "Sunday"),"weekend", "weekday")
+```
+
+_daytype_ is the new factor variable. Now, original date contains the additional column. We are using the cleandata for the last plot as NAs will not allow the last plot to be drawn.
+
+* Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+
+```{r echo=TRUE}
+meanplotdata <- aggregate(cleandata$steps, by=list(interval=cleandata$interval,daytype=cleandata$daytype), FUN=mean)
+library(lattice)
+xyplot(x ~ interval | daytype ,data = meanplotdata, type ="l",xlab = "Interval",ylab = expression("Number of steps"),layout=c(1,2))
+``` 
 
 
-## Loading and preprocessing the data
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
